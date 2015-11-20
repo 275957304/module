@@ -1,0 +1,167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>学校选择器v2</title>
+<style type="text/css">
+.hide{display:none}
+#mainContainer{position:relative;margin:20px auto;width:1000px}
+#formResult{margin-bottom:10px}
+.school-box-wrapper{margin:10px 0}
+.school-box{width:650px;border:1px solid #005EAC;background-color:#fff}
+.school-box-header{padding:5px 10px;background:#3777BC;color:#fff;font-weight:700;font-size:14px}
+.school-box-provinces,.school-box-schools{margin:5px 10px 10px 10px;border:1px solid #C3C3C3}
+.school-box-schools{overflow-x:hidden;overflow-y:auto;height:200px}
+.school-box-provinces a,.school-box-schools a{display:inline-block;height:18px;color:#005EAC;text-decoration:none;font-size:12px;line-height:18px;cursor:pointer}
+.school-box-provinces a{margin:2px 5px;padding:1px}
+.school-box-provinces a:hover{text-decoration:underline}
+.school-box-provinces a.chosen{background-color:#005EAC;color:#fff}
+.school-box-schools a{overflow:hidden;margin:4px 12px;padding-left:10px;width:160px}
+.school-box-schools a:hover{background-color:#005EAC;color:#fff}
+/* SchoolBox ENDS */
+</style>
+</head>
+<body>
+    <div id="mainContainer">
+        <div id="formResult">
+            <input type="text" id="schoolInput" readonly />
+            <input type="text" id="schoolId" readonly>
+            <a href="javascript:void(0)" class="hide" id="openSchoolBoxLink">重新选择</a>
+        </div>
+
+        <div class="school-box-wrapper">
+            <div class="school-box">
+                <div class="school-box-header">选择学校</div>
+                <div class="school-box-provinces">
+					<!--
+					<a href="javascript:void(0)" class="province-item" data-province="1">江苏</a>
+					-->
+				</div>
+                <div class="school-box-schools">
+					<!--
+					<a href="javascript:void(0)" class="school-item" data-school="10284">南京大学</a>
+					<a href="javascript:void(0)" class="school-item" data-school="10286">东南大学</a>
+					-->
+				</div> 
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="http://cdn.staticfile.org/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="school-list.js"></script>
+    <script type="text/javascript">
+    (function(){
+        // 目标元素 province 和 school 区域的父元素，以及province和school元素的copy（省得动态生成元素时写HTML了）。
+        var $schoolInput = $('#schoolInput');
+        var $schoolId = $('#schoolId');
+
+        var $schoolBox = $('.school-box-wrapper');
+        var $schoolBoxLink = $('#openSchoolBoxLink');
+
+        var $provinceDiv = $('.school-box-provinces');
+        var $schoolDiv = $('.school-box-schools');
+
+        var $provinceCopy = $('<a href="javascript:void(0)" class="province-item"></a>');
+        var $schoolCopy = $('<a href="javascript:void(0)" class="school-item"></a>');
+
+        // 缓存     其次，要定义变量将当前选中的province存起来，我们再定义一个变量指向全局的SCHOOL_LIST
+        var provinces = SCHOOL_LIST;   //json 数据
+        var curProvince = -1;  //province id
+        var lastProvinceIndex = 0;  //最后一次点击的index，用于初始化选中
+
+
+        var getProvinceById = function(pid){
+            for(var i=0; i<provinces.length; i++){
+                // NOTE: 前置条件province id可以转成数字
+                if(Number(provinces[i]['id']) == Number(pid)){   //Number 字符串转为数字
+                    return provinces[i];
+                }
+            }
+            return undefined;
+        };
+		
+		//开始写初始化province区域的代码
+        var initProvinces = function(){
+            for(var i=0; i<provinces.length; i++){
+                var province = provinces[i];
+                var $province = $provinceCopy.clone();
+                $province.attr('data-province', province['id']).text(province['name']);
+                $provinceDiv.append($province);
+            }
+        };
+		
+		//初始化学校，当然要根据传入的 provinceId
+        var initSchools = function(provinceId){
+            var province = getProvinceById(provinceId);
+            if(typeof province !== 'undefined'){
+                var schools = province['school'];
+                $schoolDiv.empty();
+
+                for(var i=0; i<schools.length; i++){
+                    var school = schools[i];
+                    var $school = $schoolCopy.clone();
+                    $school.attr('data-school', school['id'])
+                            .text(school['name']);
+                    $schoolDiv.append($school);
+                }
+				
+            }
+            return false;
+        };
+		
+		//为province绑定click事件，这样就能级联起来。
+        var onProvinceClick = function(){
+            lastProvinceIndex = $(this).index();
+            var pid = $(this).attr('data-province');
+
+            if(curProvince != pid){  // curProvince 当前省的ID
+                // set chosen
+                $provinceDiv.find('a[data-province="' + curProvince + '"]').removeClass('chosen');
+                $provinceDiv.find('a[data-province="' + pid + '"]').addClass('chosen');
+                // update
+                curProvince = pid;
+                initSchools(pid);
+            }
+            // 滚动条置顶
+            $schoolDiv.scrollTop(0); 
+        };
+		
+		//同样为school添加click，还需要定义两个表单里的元素。
+        var onSchoolClick = function(){
+            $schoolInput.val($(this).text());
+            $schoolId.val($(this).attr('data-school'));
+            hideSchoolBox();
+        };
+		
+		
+        var hideSchoolBox = function(){
+            $schoolBox.slideUp();
+            $schoolBoxLink.show();
+        };
+
+        var showSchoolBox = function(){
+            $schoolBox.slideDown();
+            $schoolBoxLink.hide();
+            // 默认选中最后一次点击的province
+            $provinceDiv.find('a').eq(lastProvinceIndex).click();
+        };
+
+        var init = function(){
+            initProvinces();
+            // bind events
+            $provinceDiv.find('a').click(onProvinceClick);
+			// 由于school元素是动态改变的，这里一定要通过live去绑定
+            $schoolDiv.find('a').live('click', onSchoolClick);
+            $schoolBoxLink.click(showSchoolBox);
+            // execute
+            showSchoolBox();
+        };
+
+
+        // *********
+        // 执行
+        // *********
+        return init();
+
+    })();  //最后为了避免变量作用域的污染，我们定义一个自执行函数，去包裹以上所有js代码。
+    </script>
+</body>
+</html>

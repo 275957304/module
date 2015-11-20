@@ -1,0 +1,64 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>学校选择器v3</title>
+<style type="text/css">
+.school-box-wrapper{margin:10px 0}
+.school-box{width:650px;border:1px solid #005EAC;background-color:#fff}
+.school-box-header{padding:5px 10px;background:#3777BC;color:#fff;font-weight:700;font-size:14px}
+.school-box-provinces,.school-box-schools{margin:5px 10px 10px 10px;border:1px solid #C3C3C3}
+.school-box-schools{overflow-x:hidden;overflow-y:auto;height:200px}
+.school-box-provinces a,.school-box-schools a{display:inline-block;height:18px;color:#005EAC;text-decoration:none;font-size:12px;line-height:18px;cursor:pointer}
+.school-box-provinces a{margin:2px 5px;padding:1px}
+.school-box-provinces a:hover{text-decoration:underline}
+.school-box-provinces a.chosen{background-color:#005EAC;color:#fff}
+.school-box-schools a{overflow:hidden;margin:4px 12px;padding-left:10px;width:160px}
+.school-box-schools a:hover{background-color:#005EAC;color:#fff}
+.hide{display:none}
+#mainContainer{position:relative;margin:20px auto;width:1000px}
+#formResult{margin-bottom:10px}
+</style>
+</head>
+<body>
+    <div id="mainContainer">
+        <div id="formResult">
+            <input type="text" id="schoolInput" readonly/>
+            <input type="text" id="schoolId" readonly>
+            <a href="javascript:void(0)" class="hide" id="openSchoolBoxLink">重新选择</a>
+        </div>
+
+        <div id="schoolBoxWrapper"></div>
+    </div>
+
+
+    <script type="text/javascript" src="http://cdn.staticfile.org/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="school-list.js"></script>
+    <script type="text/javascript" src="SchoolBox.js"></script>
+    <script type="text/javascript">
+    (function(){
+        // 目标元素
+        var $schoolInput = $('#schoolInput');
+        var $schoolId = $('#schoolId');
+        var $chooseBoxLink = $('#openSchoolBoxLink');
+
+        // 实例化对象  7.应用层调用
+        var schoolBox = new SchoolBox({
+            appendTo: '#schoolBoxWrapper',
+            schoolClickCallback: function(){
+                // NOTE: 这里被调用时this指向事件触发的元素
+                $schoolInput.val($(this).text());
+                $schoolId.val($(this).attr('data-school'));
+                // 动画
+                $chooseBoxLink.show();
+            }
+        });
+        // bind event
+        $chooseBoxLink.click(function(){
+            schoolBox.show();
+            $(this).hide();
+        });
+
+    })();
+    </script>
+</body>
+</html>
