@@ -1,0 +1,139 @@
+数据存储上面的demo中学校是hard code到元素中的，但实际上不可能这样做。我们需要定义school的数据格式。
+[
+    {
+        "id": 1,
+        "name": "北京",
+        "school": [
+            {
+                "id": 10001,
+                "name": "北京大学"
+            }
+        ]
+    }
+]
+//抓来的所有学校数据生成一个JSON对象放在全局中。
+
+省份-学校 级联首先定义目标元素，province和school区域的父元素，以及province和school元素的copy（省得动态生成元素时写HTML了）。
+var $provinceDiv = $('.school-box-provinces');
+var $schoolDiv = $('.school-box-schools');
+
+var $provinceCopy = $('<a href="javascript:void(0)" class="province-item"></a>');
+var $schoolCopy = $('<a href="javascript:void(0)" class="school-item"></a>');
+
+其次，要定义变量将当前选中的province存起来，我们再定义一个变量指向全局的SCHOOL_LIST。
+var provinces = SCHOOL_LIST;
+var curProvince = -1;  //province id
+1.开始写初始化province区域的代码。
+var initProvinces = function(){
+    for(var i=0; i<provinces.length; i++){
+        var province = provinces[i];
+        var $province = $provinceCopy.clone();
+        $province.attr('data-province', province['id'])
+                    .text(province['name']);
+        $provinceDiv.append($province);
+    }
+};
+
+2.初始化学校，当然要根据传入的provinceId。
+var getProvinceById = function(pid){
+    for(var i=0; i<provinces.length; i++){
+        // NOTE: 前置条件province id可以转成数字
+        if(Number(provinces[i]['id']) == Number(pid)){
+            return provinces[i];
+        }
+    }
+    return undefined;
+};
+
+var initSchools = function(provinceId){
+    var province = getProvinceById(provinceId);
+    if(typeof province !== 'undefined'){
+        var schools = province['school'];
+        $schoolDiv.empty();
+
+        for(var i=0; i<schools.length; i++){
+            var school = schools[i];
+            var $school = $schoolCopy.clone();
+            $school.attr('data-school', school['id'])
+                    .text(school['name']);
+            $schoolDiv.append($school);
+        }
+    }
+    return false;
+};
+
+3.为province绑定click事件，这样就能级联起来。
+var onProvinceClick = function(){
+    var pid = $(this).attr('data-province');
+
+    if(curProvince != pid){
+        // set chosen
+        $provinceDiv.find('a[data-province="' + curProvince + '"]').removeClass('chosen');
+        $provinceDiv.find('a[data-province="' + pid + '"]').addClass('chosen');
+        // update
+        curProvince = pid;
+        initSchools(pid);
+    }
+};
+
+4.同样为school添加click，还需要定义两个表单里的元素。
+var $schoolInput = $('#schoolInput');
+var $schoolId = $('#schoolId');
+
+var onSchoolClick = function(){
+    $schoolInput.val($(this).text());
+    $schoolId.val($(this).attr('data-school'));
+};
+
+5.添加动画以及统一初始化方法
+var $schoolBox = $('.school-box-wrapper');
+var $schoolBoxLink = $('#openSchoolBoxLink');
+
+var hideSchoolBox = function(){
+    $schoolBox.slideUp();
+    $schoolBoxLink.show();
+};
+
+var showSchoolBox = function(){
+    $schoolBox.slideDown();
+    $schoolBoxLink.hide();
+};
+
+var init = function(){
+    initProvinces();
+    // bind events
+    $provinceDiv.find('a').click(onProvinceClick);
+    // 由于school元素是动态改变的，这里一定要通过live去绑定
+    $schoolDiv.find('a').live('click', onSchoolClick);
+    $schoolBoxLink.click(showSchoolBox);
+    // execute
+    showSchoolBox();
+};
+
+6.最后为了避免变量作用域的污染，我们定义一个自执行函数，去包裹以上所有js代码。
+(function(){
+    // 以上省略...
+
+    // 执行初始化
+    return init();
+})();
+
+7.添加下点缀，让它每次showSchoolBox时都能自定选中前一次选择的province。
+var lastProvinceIndex = 0;  //最后一次点击的index，用于初始化选中
+
+var onProvinceClick = function(){
+    lastProvinceIndex = $(this).index();
+
+    // 中间省略...
+
+    // 滚动条置顶
+    $schoolDiv.scrollTop(0);
+};
+
+var showSchoolBox = function(){
+    // 以上省略...
+
+    // 默认选中最后一次点击的province
+    $provinceDiv.find('a').eq(lastProvinceIndex).click();
+};
+
